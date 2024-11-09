@@ -5,11 +5,10 @@ import pickle
 
 pygame.init()
 pygame.mixer.init()
-pygame.mixer.music.load("instruction_music.mp3")
-pygame.mixer.music.load("algorithm_music.mp3")
+
 WIDTH = 900
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
-pygame.display.set_caption("Path Finding Game")
+pygame.display.set_caption("Save the Princess | SWE485")
 
 algorithm_run = False
 error_log = []
@@ -104,34 +103,10 @@ class Spot:
     def __lt__(self, other):
         return False
 
-def stop_music():
-    pygame.mixer.music.stop()
-
-def play_instruction_music():
-    stop_music()
-    pygame.mixer.music.load("instruction_music.mp3")
-    pygame.mixer.music.play(-1)
-
-def play_algorithm_music():
-    stop_music()
-    pygame.mixer.music.load("algorithm_music.mp3")
-    pygame.mixer.music.play(-1)
-
 def manhattan_distance(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
     return abs(x1 - x2) + abs(y1 - y2)
-
-def euclidean_distance(p1, p2):
-    x1, y1 = p1
-    x2, y2 = p2
-    return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
-
-def chebyshev_distance(p1, p2):
-    x1, y1 = p1
-    x2, y2 = p2
-    return max(abs(x1 - x2), abs(y1 - y2))
-
 
 def reconstruct_path(came_from, current, draw, start):
     path = []
@@ -146,29 +121,17 @@ def reconstruct_path(came_from, current, draw, start):
     draw()
 
 
+
 def print_path(path, start, length):
-    print("Path")
-    print("Start:")
-    print(f"  {start},")
-    for pos in path:
-        print(f"  {pos},")
-    print("Goal")
-    print(f"Length: {length} steps")
+    print(f"The visualized grid shows the explored nodes and the final path.\n")
+    path_str = " -> ".join([f"{pos}" for pos in [start] + path])
+    print(f"The shortest path is {length} Such path is {path_str}")
+    # print(f"Length: {length} steps")
+
 
 def print_no_path_found():
-    print("No path found!")
+    print("No solution is found! We need to eliminate more obstacles to find such a walk.")
 
-def generate_maze(grid, start, end):
-    global algorithm_run
-    if algorithm_run:
-        add_error("Please clear the grid before generating a maze.")
-        return
-    for row in grid:
-        for spot in row:
-            if spot != start and spot != end:
-                spot.reset()
-
-    recursive_division(grid, 0, len(grid) - 1, 0, len(grid) - 1, start, end)
 
 def recursive_division(grid, row_start, row_end, col_start, col_end, start, end):
     if row_end - row_start < 2 or col_end - col_start < 2:
@@ -221,7 +184,6 @@ def a_star_algorithm(draw, grid, start, end, heuristic_choice):
     if algorithm_run:
         add_error("Please clear the grid before running another algorithm.")
         return False
-    play_algorithm_music()
     global error_log
     error_log = []
     count = 0
@@ -235,10 +197,7 @@ def a_star_algorithm(draw, grid, start, end, heuristic_choice):
 
     if heuristic_choice == 'manhattan':
         f_score[start] = manhattan_distance(start.get_pos(), end.get_pos())
-    elif heuristic_choice == 'euclidean':
-        f_score[start] = euclidean_distance(start.get_pos(), end.get_pos())
-    elif heuristic_choice == 'chebyshev':
-        f_score[start] = chebyshev_distance(start.get_pos(), end.get_pos())
+   
 
     open_set_hash = {start}
 
@@ -250,11 +209,12 @@ def a_star_algorithm(draw, grid, start, end, heuristic_choice):
         current = open_set.get()[2]
         open_set_hash.remove(current)
 
+
         if current == end:
             reconstruct_path(came_from, end, draw, start)
             end.make_end()
-            algorithm_run = True
-            play_instruction_music()
+            draw()
+            algorithm_run = False  # Set to False once done
             return True
 
         for neighbor in current.neighbors:
@@ -265,11 +225,7 @@ def a_star_algorithm(draw, grid, start, end, heuristic_choice):
 
                 if heuristic_choice == 'manhattan':
                     f_score[neighbor] = temp_g_score + manhattan_distance(neighbor.get_pos(), end.get_pos())
-                elif heuristic_choice == 'euclidean':
-                    f_score[neighbor] = temp_g_score + euclidean_distance(neighbor.get_pos(), end.get_pos())
-                elif heuristic_choice == 'chebyshev':
-                    f_score[neighbor] = temp_g_score + chebyshev_distance(neighbor.get_pos(), end.get_pos())
-
+              
                 if neighbor not in open_set_hash:
                     count += 1
                     open_set.put((f_score[neighbor], count, neighbor))
@@ -283,16 +239,14 @@ def a_star_algorithm(draw, grid, start, end, heuristic_choice):
 
     print_no_path_found()
     algorithm_run = True
-    play_instruction_music()
     return False
 
 
-def bfs_algorithm(draw, grid, start, end): #Works the same as Dijkstra because all edges have the same weight (1)
+def bfs_algorithm(draw, grid, start, end): #all edges have the same weight (1)
     global algorithm_run
     if algorithm_run:
         add_error("Please clear the grid before running another algorithm.")
         return False
-    play_algorithm_music()
     global error_log
     error_log = []
     queue = Queue()
@@ -308,8 +262,8 @@ def bfs_algorithm(draw, grid, start, end): #Works the same as Dijkstra because a
         if current == end:
             reconstruct_path(came_from, end, draw, start)
             end.make_end()
-            algorithm_run = True
-            play_instruction_music()
+            draw()
+            algorithm_run = False  # Set to False once done
             return True
         for neighbor in current.neighbors:
             if not visited[neighbor]:
@@ -323,140 +277,8 @@ def bfs_algorithm(draw, grid, start, end): #Works the same as Dijkstra because a
 
     print_no_path_found()
     algorithm_run = True
-    play_instruction_music()
     return False
 
-def dfs_algorithm(draw, grid, start, end):
-    global algorithm_run
-    if algorithm_run:
-        add_error("Please clear the grid before running another algorithm.")
-        return False
-    play_algorithm_music()
-    global error_log
-    error_log = []
-    stack = LifoQueue()
-    stack.put(start)
-    came_from = {}
-    visited = {spot: False for row in grid for spot in row}
-    visited[start] = True
-    while not stack.empty():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-        current = stack.get()
-        if current == end:
-            reconstruct_path(came_from, end, draw, start)
-            end.make_end()
-            algorithm_run = True
-            play_instruction_music()
-            return True
-        for neighbor in current.neighbors:
-            if not visited[neighbor]:
-                stack.put(neighbor)
-                came_from[neighbor] = current
-                visited[neighbor] = True
-                neighbor.make_open()
-        draw()
-        if current != start:
-            current.make_closed()
-
-    print_no_path_found()
-    algorithm_run = True
-    play_instruction_music()
-    return False
-
-def ucs_algorithm(draw, grid, start, end):
-    global algorithm_run
-    if algorithm_run:
-        add_error("Please clear the grid before running another algorithm.")
-        return False
-    play_algorithm_music()
-    global error_log
-    error_log = []
-    count = 0
-    open_set = PriorityQueue()
-    open_set.put((0, count, start))
-    came_from = {}
-    g_score = {spot: float("inf") for row in grid for spot in row}
-    g_score[start] = 0
-    open_set_hash = {start}
-    while not open_set.empty():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-        current = open_set.get()[2]
-        open_set_hash.remove(current)
-        if current == end:
-            reconstruct_path(came_from, end, draw, start)
-            end.make_end()
-            algorithm_run = True
-            play_instruction_music()
-            return True
-        for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
-            if temp_g_score < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = temp_g_score
-                if neighbor not in open_set_hash:
-                    count += 1
-                    open_set.put((g_score[neighbor], count, neighbor))
-                    open_set_hash.add(neighbor)
-                    neighbor.make_open()
-        draw()
-        if current != start:
-            current.make_closed()
-
-    print_no_path_found()
-    algorithm_run = True
-    play_instruction_music()
-    return False
-
-def dijkstra_algorithm(draw, grid, start, end): #Works and the code is the same as UCS in this game because we care about shortest path from start to end not to all nodes(which is what Dijkstra does, UCS is a special variation of Dijkstra which looks for the shortest path to a single node)
-                                                #If we would look for the shortest path to all nodes we would need to change the algorithm so that it would not stop when it reaches the end node end it would start with a priority queue with all nodes not just the start node like in UCS
-    global algorithm_run
-    if algorithm_run:
-        add_error("Please clear the grid before running another algorithm.")
-        return False
-    play_algorithm_music()
-    global error_log
-    error_log = []
-    count = 0
-    open_set = PriorityQueue()
-    open_set.put((0, count, start))
-    came_from = {}
-    g_score = {spot: float("inf") for row in grid for spot in row}
-    g_score[start] = 0
-    open_set_hash = {start}
-    while not open_set.empty():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-        current = open_set.get()[2]
-        open_set_hash.remove(current)
-        if current == end:
-            reconstruct_path(came_from, end, draw, start)
-            end.make_end()
-            algorithm_run = True
-            play_instruction_music()
-            return True
-        for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
-            if temp_g_score < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = temp_g_score
-                if neighbor not in open_set_hash:
-                    count += 1
-                    open_set.put((g_score[neighbor], count, neighbor))
-                    open_set_hash.add(neighbor)
-                    neighbor.make_open()
-        draw()
-        if current != start:
-            current.make_closed()
-
-    print_no_path_found()
-    algorithm_run = True
-    play_instruction_music()
-    return False
 
 def make_grid(rows, width):
     grid = []
@@ -524,70 +346,61 @@ def draw(win, grid, rows, width):
 
     pygame.display.update()
 
-
-
 def show_instructions(win, width):
-    play_instruction_music()
+    height = WIDTH  # Assuming height is set to match the width for a square window
+
     win.fill(WHITE)
-
-    title_text = "Welcome to the Path Finding Game!"
+    title_text = "Welcome to Rescuing the Princess Game!"
+    # Consider reducing the font size if necessary
     title_surface = title_font.render(title_text, True, BLACK)
-    win.blit(title_surface, (width // 2 - title_surface.get_width() // 2, 7))
+    win.blit(title_surface, (width // 2 - title_surface.get_width() // 2, 10))
 
-    # Instruction sections
+    # Instruction sections with potentially smaller fonts or tighter spacing
     sections = [
         ("Setup", [
-            "First 2 Left Clicks: Set start and end points (orange and turquoise).",
-            "Other Left Clicks: Set barriers (black).",
-            "Right Click: Remove start, end, or barriers."
+            "First Left Click: Set the start point (orange).",
+            "Second Left Click: Set the end point (turquoise).",
+            "Subsequent Left Clicks: Place barriers (black).",
+            "Right Click on Barrier: Remove a barrier."
         ]),
-        ("Heuristics & Algorithms", [
-            "Press '1': Manhattan Heuristic for A* Algorithm",
-            "Press '2': Euclidean Heuristic for A* Algorithm",
-            "Press '3': Chebyshev Heuristic for A* Algorithm",
-            "Press 'A': Run A* Algorithm",
-            "Press 'B': Run BFS Algorithm",
-            "Press 'D': Run DFS Algorithm",
-            "Press 'U': Run UCS Algorithm",
-            "Press 'I': Run Dijkstra's Algorithm"
+        ("Algorithms", [
+            "Press 'A': Run A* Algorithm - finds a path using heuristics.",
+            "Press 'B': Run BFS Algorithm - explores all possible paths."
         ]),
-        ("Additional Controls", [
-            "Press 'C': Clear the grid",
-            "Press 'M': Generate a maze",
-            "Click 'Start' to begin the game",
-            "Press 'S': Save the current grid configuration",
-            "Press 'L': Load the last saved grid configuration"
+        ("Controls", [
+            "Press 'C': Clear the entire grid to start over.",
+            "Press 'S': Save the current grid setup.",
+            "Press 'L': Load a previously saved grid setup."
         ]),
-        ("Rules:", [
-            "You can only run one algorithm at a time. You need to clear the grid or load a configuration to run again.",
-            "You need to clear the grid or load a configuration to be able to set up / remove points or barriers.",
-            "You need to clear the grid or load a configuration to be able to generate a new maze.",
-            "You need to select start and end points before running an algorithm.",
-            "If you want to run A* Algorithm, you need to select a heuristic first."
+        ("Rules", [
+            "Only one algorithm can run at a time.",
+            "Set start and end points before running an algorithm.",
+            "Clear the grid or load a setup to run algorithms repeatedly."
         ])
     ]
 
-    y_offset = 50
+    y_offset = 40  # Smaller starting offset
     for section_title, lines in sections:
-        pygame.draw.rect(win, LIGHT_BLUE, (20, y_offset, width - 40, 35))
         section_header = section_font.render(section_title, True, BLACK)
         win.blit(section_header, (30, y_offset))
-        y_offset += 30
+        y_offset += section_header.get_height() + 2  # Smaller vertical padding
 
-        pygame.draw.rect(win, LIGHT_YELLOW, (20, y_offset, width - 40, len(lines) * 30 + 10))
         for line in lines:
             instruction_text = text_font.render(line, True, BLACK)
-            win.blit(instruction_text, (30, y_offset + 5))
-            y_offset += 30
+            win.blit(instruction_text, (50, y_offset))
+            y_offset += instruction_text.get_height() + 2
         y_offset += 10
 
+    # Position the button right below the last line of instructions
     button_width = 120
     button_height = 40
     button_x = (width - button_width) // 2
-    button_y = y_offset + 10
+    button_y = min(height - button_height - 20, y_offset + 10)  # Ensure it's within the window
+
+    # Draw the Start button
     pygame.draw.rect(win, GREY, (button_x, button_y, button_width, button_height))
     start_text = section_font.render("Start", True, BLACK)
-    win.blit(start_text, (button_x + 35, button_y + 5))
+    win.blit(start_text, (button_x + (button_width - start_text.get_width()) // 2, button_y + (button_height - start_text.get_height()) // 2))
 
     pygame.display.update()
 
@@ -596,11 +409,14 @@ def show_instructions(win, width):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return
+                return False  # Game should quit
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
                 if button_x <= x <= button_x + button_width and button_y <= y <= button_y + button_height:
-                    waiting = False
+                    waiting = False  # User clicked Start
+
+    return True  # Game should continue
+
 
 def get_clicked_pos(pos, rows, width):
     gap = width // rows
@@ -615,7 +431,7 @@ def get_clicked_pos(pos, rows, width):
     return row, col
 
 def main(win, width):
-    rows = 50
+    rows = 10
     grid = make_grid(rows, width)
     start = None
     end = None
@@ -655,72 +471,33 @@ def main(win, width):
                 if clicked_pos is not None:
                     row, col = clicked_pos
                     spot = grid[row][col]
-                    spot.reset()
+                    if spot.is_barrier():
+                     spot.reset()  # Allow barrier removal
                     if spot == start:
-                        start = None
+                        start = None # Unset start if it's the start node
                     elif spot == end:
-                        end = None
+                        end = None  # Unset end if it's the end node
 
             if event.type == pygame.KEYDOWN:
-
-                if event.key == pygame.K_1:
-                    heuristic_choice = 'manhattan'
-                    print("Selected Manhattan Heuristic")
-                elif event.key == pygame.K_2:
-                    heuristic_choice = 'euclidean'
-                    print("Selected Euclidean Heuristic")
-                elif event.key == pygame.K_3:
-                    heuristic_choice = 'chebyshev'
-                    print("Selected Chebyshev Heuristic")
 
                 if event.key == pygame.K_a and start and end:
                     for row in grid:
                         for spot in row:
                             spot.update_neighbors(grid)
-                    print("Running A* Algorithm")
-                    if heuristic_choice == "":
-                        add_error("Please select a heuristic first")
-                    else:
-                        a_star_algorithm(lambda: draw(win, grid, rows, width), grid, start, end, heuristic_choice)
-                        heuristic_choice = ""
+                    print("--- Running A* Algorithm ---")
+                    a_star_algorithm(lambda: draw(win, grid, rows, width), grid, start, end, "manhattan")
                 elif event.key == pygame.K_a and (not start or not end):
-                    add_error("Please select start and end points first")
+                    add_error("Please select start and end nodes first!")
 
                 if event.key == pygame.K_b and start and end:
                     for row in grid:
                         for spot in row:
                             spot.update_neighbors(grid)
-                    print("Running BFS Algorithm")
+                    print("--- Running BFS Algorithm ---")
                     bfs_algorithm(lambda: draw(win, grid, rows, width), grid, start, end)
                 elif event.key == pygame.K_b and (not start or not end):
-                    add_error("Please select start and end points first")
+                    add_error("Please select start and end nodes first!")
 
-                if event.key == pygame.K_d and start and end:
-                    for row in grid:
-                        for spot in row:
-                            spot.update_neighbors(grid)
-                    print("Running DFS Algorithm")
-                    dfs_algorithm(lambda: draw(win, grid, rows, width), grid, start, end)
-                elif event.key == pygame.K_d and (not start or not end):
-                    print("Please select start and end points first")
-
-                if event.key == pygame.K_u and start and end:
-                    for row in grid:
-                        for spot in row:
-                            spot.update_neighbors(grid)
-                    print("Running UCS Algorithm")
-                    ucs_algorithm(lambda: draw(win, grid, rows, width), grid, start, end)
-                elif event.key == pygame.K_u and (not start or not end):
-                    add_error("Please select start and end points first")
-
-                if event.key == pygame.K_i and start and end:
-                    for row in grid:
-                        for spot in row:
-                            spot.update_neighbors(grid)
-                    print("Running Dijkstra's Algorithm")
-                    dijkstra_algorithm(lambda: draw(win, grid, rows, width), grid, start, end)
-                elif event.key == pygame.K_i and (not start or not end):
-                    add_error("Please select start and end points first")
 
                 if event.key == pygame.K_c:
                     start = None
@@ -728,10 +505,7 @@ def main(win, width):
                     print("Clearing the grid")
                     algorithm_run = False
                     grid = make_grid(rows, width)
-
-                if event.key == pygame.K_m:
-                    print("Generating a maze")
-                    generate_maze(grid, start, end)
+               
 
                 if event.key == pygame.K_s:
                     save_grid(grid, start, end)
